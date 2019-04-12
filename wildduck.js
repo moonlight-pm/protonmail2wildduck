@@ -61,7 +61,7 @@ class User {
   }
 
   async createAddress (address) {
-    await this.service.post(`users/${this.id}/addresses`), {
+    await this.service.post(`users/${this.id}/addresses`, {
       address
     })
   }
