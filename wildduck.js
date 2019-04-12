@@ -26,6 +26,12 @@ module.exports = class Wildduck {
     })).body
   }
 
+  async delete (path) {
+    return (await got.delete(`http://${this.host}:${this.port}/${path}`, {
+      json: true
+    })).body
+  }
+
   async user (username) {
     const id = (await this.get(`users/resolve/${username}`)).id
     return new User(this, await this.get(`users/${id}`))
@@ -35,6 +41,9 @@ module.exports = class Wildduck {
     return (await this.get('users')).results.map(u => new User(this, u))
   }
 
+  async addresses () {
+    return (await this.get('addresses')).results
+  }
 }
 
 class User {
@@ -45,6 +54,16 @@ class User {
 
   async mailboxes () {
     return (await this.service.get(`users/${this.id}/mailboxes`)).results.map(b => new Mailbox(this, b))
+  }
+
+  async addresses () {
+    return (await this.service.get(`users/${this.id}/addresses`)).results.map(a => new Address(this, a))
+  }
+
+  async createAddress (address) {
+    await this.service.post(`users/${this.id}/addresses`), {
+      address
+    })
   }
 }
 
@@ -63,5 +82,22 @@ class Mailbox {
       message: message.toString(),
       seen: false
     })
+  }
+}
+
+class Address {
+  constructor (user, options) {
+    this.user = user
+    Object.assign(this, options)
+  }
+
+  async update (address) {
+    await this.user.service.put(`users/${this.user.id}/addresses/${this.id}`, {
+      address
+    })
+  }
+
+  async delete () {
+    await this.user.service.delete(`users/${this.user.id}/addresses/${this.id}`)
   }
 }
