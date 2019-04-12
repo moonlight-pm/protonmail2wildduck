@@ -16,10 +16,12 @@ async function main () {
   await proton.connect()
   const user = await wildduck.user(config.wildduck.user)
   const mailbox = (await user.mailboxes()).filter(b => b.path === 'INBOX')[0]
-  await downloadMessages(mailbox.path)
-  await uploadMessages(mailbox)
-  proton.logout()
-  db.end()
+  await downloadMessages(mailbox.path, 10)
+  await uploadMessages(mailbox, 100)
+  process.exit()
+  // proton.logout()
+  // proton.close()
+  // db.end()
 }
 
 async function downloadMessages (mailboxPath = 'INBOX', count = 1) {
@@ -27,7 +29,7 @@ async function downloadMessages (mailboxPath = 'INBOX', count = 1) {
   const messages = (await proton.listMessages(mailboxPath, `${lastUid + 1}:${lastUid + count}`, ['uid', 'flags', 'body[]', 'body.peek[]']))
   if (messages.length === 0) return false
   for (const message of messages) {
-    console.log(`Inserting messages ${mailboxPath} ${message.uid}`)
+    console.log(`Downloading messages ${mailboxPath} ${message.uid}`)
     await db.query(`
       INSERT INTO messages (id, mailbox, uid, body, seen)
       VALUES ($1, $2, $3, $4, $5)
@@ -37,11 +39,14 @@ async function downloadMessages (mailboxPath = 'INBOX', count = 1) {
 }
 
 async function uploadMessages(mailbox, count = 1) {
-  const message = (await db.query(`SELECT * FROM messages WHERE uploaded = false ORDER BY uid LIMIT ${count}`)).rows
+  const messages = (await db.query(
+    `SELECT * FROM messages WHERE mailbox = $1 AND uploaded IS NULL ORDER BY uid LIMIT ${count}`,
+    [mailbox.path])).rows
   if (messages.length === 0) return false
-  for (const message of messagese) {
-    console.log(`Inserting messages ${mailbox.path} ${message.uid}`)
+  for (const message of messages) {
+    console.log(`Uploading messages ${mailbox.path} ${message.uid}`)
     await mailbox.upload(message.body)
+    await db.query(`UPDATE messages SET uploaded = true WHERE id = $1`, [message.id])
   }
   return true
 }
