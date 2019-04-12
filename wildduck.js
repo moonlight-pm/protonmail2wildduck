@@ -19,6 +19,13 @@ module.exports = class Wildduck {
     })).body
   }
 
+  async put (path, data) {
+    return (await got.put(`http://${this.host}:${this.port}/${path}`, {
+      json: true,
+      body: data
+    })).body
+  }
+
   async user (username) {
     const id = (await this.get(`users/resolve/${username}`)).id
     return new User(this, await this.get(`users/${id}`))
@@ -48,6 +55,13 @@ class Mailbox {
   }
 
   async upload (message) {
-    await this.user.service.post(`users/${this.user.id}/mailboxes/${this.id}/messages`, { raw: message })
+    return (await this.user.service.post(`users/${this.user.id}/mailboxes/${this.id}/messages`, { raw: message })).message.id
+  }
+
+  async markUnread (message) {
+    await this.user.service.put(`users/${this.user.id}/mailboxes/${this.id}/messages`, {
+      message: message.toString(),
+      seen: false
+    })
   }
 }
