@@ -1,9 +1,9 @@
 CREATE TABLE messages (
   id uuid primary key,
   mailbox text,
-  uid int,
+  i int,
   body text,
   seen bool,
   uploaded bool,
-  unique (mailbox, uid)
+  unique (mailbox, i)
 )
