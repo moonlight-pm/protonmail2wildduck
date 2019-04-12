@@ -12,18 +12,25 @@ const wildduck = new Wildduck(config.wildduck.host)
 let proton
 
 async function main () {
+  const watch = process.argv.includes('watch')
   await db.connect()
-  proton = await imap.connect({ imap: config.protonbridge })
   const user = await wildduck.user(config.wildduck.user)
   const mailbox = (await user.mailboxes()).filter(b => b.path === 'INBOX')[0]
-  await proton.openBox(mailbox.path)
-  while (await downloadMessages(mailbox.path, 1)) {
-    await uploadMessages(mailbox, 100)
+  async function check () {
+    while (await downloadMessages(mailbox.path, 10)) {
+      await uploadMessages(mailbox, 100)
+    }
   }
-  // await downloadMessages(mailbox.path, 1)
-  // await uploadMessages(mailbox, 100)
-  proton.end()
-  db.end()
+  proton = await imap.connect({
+    imap: config.protonbridge,
+    onmail: watch ? check : () => {}
+  })
+  await proton.openBox(mailbox.path)
+  if (!watch) {
+    await check()
+    proton.end()
+    db.end()
+  }
 }
 
 async function downloadMessages (mailboxPath = 'INBOX', count = 1) {
