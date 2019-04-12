@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "emailjs-imap-client": "^3.0.7",
+    "got": "^9.6.0",
+    "pg": "^7.9.0",
+    "uuid": "^3.3.2"
+  }
+}
